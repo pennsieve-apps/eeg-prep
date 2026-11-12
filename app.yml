@@ -1,0 +1,256 @@
+# yaml-language-server: $schema=https://schemas.pennsieve.io/app-manifest/v1.json
+schemaVersion: "1.0"
+application:
+  name: Scalp EEG Prep
+  description: >-
+    The first step of the scalp EEG workflows. Reads clinical scalp EEG (BIDS-EEG, EDF/EDF+, BDF,
+    BrainVision, EEGLAB, FIF, Nihon Kohden, Natus) with MNE-Python, keeps the EEG channels under
+    their 10-20 names, finds bad channels (pyprep), filters, re-references (average by default;
+    bipolar-only recordings stay bipolar), removes eye, muscle and heart artifacts with ICA +
+    ICLabel (optional ASR), marks bad segments, reads seizure labels, and writes one BIDS-EEG
+    derivative (EDF+) plus a QC table and figures.
+  type: processor
+  tags:
+    - eeg
+    - scalp-eeg
+    - electrophysiology
+    - epilepsy
+    - neurology
+    - neuroscience
+    - preprocessing
+    - quality-control
+    - artifact-removal
+    - bids
+runtime:
+  # One recording at a time, read in WINDOW_S windows; the cleaned signals go to a disk-backed
+  # array in TMPDIR, then to EDF+. Measured (amd64 emulation on an M-series Mac, 2 vCPU): see
+  # README "Runtime". Long-term recordings (24 h) need hours, hence the timeout.
+  cpu: 2048
+  memory: 4096
+  computeTypes:
+    - standard
+  timeoutSeconds: 43200
+parameters:
+  - name: RECORDINGS
+    type: string
+    label: Recordings
+    description: >-
+      Comma-separated glob patterns matched against recording ids (sub-PN06_ses-01_task-szMonitoring_run-01),
+      file names or paths in the input; * = everything.
+    defaultValue: "*"
+  - name: LABELS_FILE
+    type: string
+    label: Labels file name
+    description: >-
+      Name of an optional labels CSV anywhere in the input: subject, recording_id (empty = every
+      recording of the subject), onset_s, duration_s, trial_type (default seizure); rows without
+      onset_s carry recording-level columns (e.g. lateralisation) into recordings.csv.
+    defaultValue: labels.csv
+  - name: REFERENCE
+    type: string
+    label: Reference
+    description: >-
+      average: common average of the good EEG channels (SzCORE's convention). linked-ears: mean of
+      A1/A2 (or M1/M2) when both are good, else average with a note. as-recorded: keep the
+      recording's own reference. Bipolar-only recordings always stay bipolar.
+    defaultValue: average
+    validValues: [average, linked-ears, as-recorded]
+  - name: LINE_FREQ
+    type: string
+    label: Mains frequency (Hz)
+    description: >-
+      auto: from the BIDS sidecar or the file, else detected as 50 or 60 Hz from the spectrum (no
+      notch when neither stands out). Or 50, 60, or 0 for no notch. Harmonics below Nyquist are notched too.
+    defaultValue: auto
+  - name: HIGHPASS
+    type: number
+    label: High-pass (Hz)
+    description: Butterworth high-pass, zero phase; 0 = none.
+    defaultValue: 0.5
+    min: 0
+  - name: LOWPASS
+    type: number
+    label: Low-pass (Hz)
+    description: >-
+      Butterworth low-pass, zero phase; 0 = none (the default: spike and spectral analyses want the
+      full band). Set e.g. 70 for display-style data.
+    defaultValue: 0
+    min: 0
+  - name: RESAMPLE_HZ
+    type: number
+    label: Resample to (Hz)
+    description: 0 = keep the recording's rate; e.g. 256 for seizure models (polyphase resampling).
+    defaultValue: 0
+    min: 0
+  - name: ARTIFACTS
+    type: string
+    label: Artifact removal
+    description: >-
+      iclabel: ICA on the good channels, components ICLabel labels eye, muscle, heart, line noise or
+      channel noise with probability >= ICLABEL_THRESHOLD removed (needs >= 8 good channels with
+      10-20 positions; skipped with a note otherwise, e.g. for bipolar-only recordings). asr:
+      Artifact Subspace Reconstruction (python-meegkit). both: ASR then ICA. none.
+    defaultValue: iclabel
+    validValues: [iclabel, asr, both, none]
+  - name: ICLABEL_THRESHOLD
+    type: number
+    label: ICLabel probability threshold
+    description: Minimum ICLabel probability of an artifact class for a component to be removed.
+    defaultValue: 0.8
+    min: 0.5
+    max: 1
+  - name: ICA_METHOD
+    type: string
+    label: ICA method
+    description: infomax (extended Infomax, what ICLabel was trained on) or picard (faster, extended, non-orthogonal).
+    defaultValue: infomax
+    validValues: [infomax, picard]
+  - name: ICA_MAX_S
+    type: number
+    label: ICA sample (s)
+    description: >-
+      Seconds of data the ICA (and ASR) is fitted on: 10 s chunks spread over the recording, seizures
+      and chunks above 2 x AMPLITUDE_UV left out. The cleaning is then applied to the whole recording.
+    defaultValue: 300
+    min: 30
+  - name: ICA_COMPONENTS
+    type: integer
+    label: ICA components
+    description: 0 = good channels - 1 (the rank after average reference); a smaller number fits faster.
+    defaultValue: 0
+    min: 0
+  - name: ASR_CUTOFF
+    type: number
+    label: ASR cutoff (SD)
+    description: ASR's rejection threshold in standard deviations of the calibration data (20 as Chang et al. 2020 recommend).
+    defaultValue: 20
+    min: 1
+  - name: BAD_CHANNELS
+    type: string
+    label: Bad channel detection
+    description: >-
+      pyprep: PREP's criteria (pyprep NoisyChannels) on up to three QC segments, seizures left out;
+      simple: robust z of line length and amplitude, flat, line noise (always used for bipolar
+      channels and channels without a 10-20 position); none.
+    defaultValue: pyprep
+    validValues: [pyprep, simple, none]
+  - name: RANSAC
+    type: boolean
+    label: RANSAC
+    description: Include pyprep's RANSAC criterion (channels poorly predicted by their neighbours).
+    defaultValue: true
+  - name: QC_SEGMENT_S
+    type: number
+    label: QC segment (s)
+    description: Length of each of the (up to three) segments the bad-channel criteria are computed on.
+    defaultValue: 300
+    min: 30
+  - name: BAD_Z
+    type: number
+    label: Robust z for the simple criteria
+    description: Threshold of the robust z of log line length / amplitude (BAD_CHANNELS=simple, bipolar channels).
+    defaultValue: 5
+    min: 1
+  - name: AMPLITUDE_UV
+    type: number
+    label: Bad-segment amplitude (µV)
+    description: >-
+      A sample above this absolute value on any good channel (after filtering, re-referencing and
+      artifact removal) marks a bad segment (+-0.5 s); 0 = off.
+    defaultValue: 500
+    min: 0
+  - name: FLAT_UV
+    type: number
+    label: Flat threshold (µV)
+    description: Sample-to-sample change below which a good channel counts as flat (MNE annotate_amplitude); 0 = off.
+    defaultValue: 0.1
+    min: 0
+  - name: FLAT_S
+    type: number
+    label: Flat duration (s)
+    description: How long a good channel must be flat to mark a bad segment.
+    defaultValue: 5
+    min: 0
+  - name: MUSCLE_Z
+    type: number
+    label: Muscle z-score
+    description: >-
+      Threshold of MNE's annotate_muscle_zscore (70 Hz and above, per window); 0 = off. Not used when
+      the data are low-passed below 80 Hz or sampled below ~200 Hz.
+    defaultValue: 5
+    min: 0
+  - name: RECORDING_KIND
+    type: string
+    label: Recording kind
+    description: >-
+      auto: sleep when the task or sidecar says so, else routine (<= 2 h) or long-term (> 2 h).
+      Or force routine, long-term, sleep or unknown (recordings.csv `kind`, used by eeg-sleep).
+    defaultValue: auto
+    validValues: [auto, routine, long-term, sleep, unknown]
+  - name: WINDOW_S
+    type: number
+    label: Window (s)
+    description: Length of the windows a recording is read and cleaned in (with filter padding).
+    defaultValue: 300
+    min: 30
+  - name: SEED
+    type: integer
+    label: Random seed
+    description: Seed of every random step (ICA, RANSAC).
+    defaultValue: 42
+    min: 0
+  - name: THREADS
+    type: integer
+    label: Threads
+    description: >-
+      BLAS threads; 0 = from the container's cgroup CPU quota (never the host's CPU count), capped by
+      its memory limit. Recordings are processed one at a time.
+    defaultValue: 0
+    min: 0
+  - name: VERIFY_EDF
+    type: boolean
+    label: Verify EDF
+    description: Read every written EDF back with MNE and check it against the cleaned signals (within half a quantisation step).
+    defaultValue: true
+inputs:
+  - name: eeg
+    description: >-
+      Scalp EEG recordings: a BIDS-EEG dataset (events.tsv seizure rows, HED-SCORE `eventType`,
+      channels.tsv, participants.tsv are read), or loose EDF/EDF+/BDF, BrainVision (.vhdr), EEGLAB
+      (.set), FIF, Nihon Kohden (.EEG) or Natus/Nicolet (.e) files; CHB-MIT `-summary.txt` files
+      next to the EDFs and an optional labels.csv. Folders and symlinks are followed.
+    mediaTypes:
+      - application/edf
+      - text/csv
+      - text/tab-separated-values
+      - application/json
+      - application/octet-stream
+    placement: subfolder
+    required: true
+outputs:
+  - name: eeg
+    description: >-
+      A BIDS-EEG derivative: dataset_description.json, participants.tsv, recordings.csv,
+      provenance.json, and per recording <stem>_desc-preproc_{eeg.edf (EDF+, µV), eeg.json,
+      channels.tsv, events.tsv, electrodes.tsv, coordsystem.json}.
+    mediaTypes:
+      - application/edf
+      - text/csv
+      - text/tab-separated-values
+      - application/json
+  - name: qc
+    description: >-
+      eeg-prep/qc.csv (channels kept/bad/dropped with reasons, ICA components with their ICLabel
+      class, bad-segment totals), one QC figure per recording, an overview figure, summary.json and
+      provenance.json.
+    mediaTypes:
+      - text/csv
+      - image/png
+      - application/json
+
+# How a release is tested before it is made public: the inputs a review run uses.
+# See app-deploy-service docs/app-manifest-review.md. The generator writes <dir>/eeg/ (the input port).
+review:
+  version: 1
+  generate:
+    command: python -m tests.make_fixture "$REVIEW_INPUT_DIR"
