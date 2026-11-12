@@ -145,9 +145,9 @@ def make_signals(duration: float, seed: int, seizure: tuple[float, float] | None
     return out
 
 
-def _sig(x: np.ndarray, label: str, lim: float = 3000.0) -> EdfSignal:
+def _sig(x: np.ndarray, label: str, lim: float = 3000.0, prefiltering: str = "") -> EdfSignal:
     return EdfSignal(np.clip(x, -lim, lim), SFREQ, label=label, physical_dimension="uV",
-                     physical_range=(-lim, lim), digital_range=(-32768, 32767))
+                     physical_range=(-lim, lim), digital_range=(-32768, 32767), prefiltering=prefiltering)
 
 
 def write_tsv(path: Path, header: list[str], rows: list[list]) -> None:
@@ -186,7 +186,11 @@ def write_referential(root: Path) -> None:
     eeg.mkdir(parents=True, exist_ok=True)
     stem = "sub-01_ses-01_task-routine_run-01"
     start = dt.datetime(2020, 3, 1, 10, 0, 0)
-    Edf([_sig(x, lb) for x, lb in zip(data, labels)], patient=Patient(), recording=Recording(startdate=start.date()),
+    # declared (never applied) filters that differ per channel, as in Siena's headers: eeg-prep must not
+    # copy them into channels.tsv
+    pre = ["HP:5.305165Hz LP:30Hz N:50Hz" if k % 3 == 0 else "HP:1.591549Hz LP:15Hz" for k in range(len(labels))]
+    Edf([_sig(x, lb, prefiltering=pf) for x, lb, pf in zip(data, labels, pre)], patient=Patient(),
+        recording=Recording(startdate=start.date()),
         starttime=start.time()).write(eeg / f"{stem}_eeg.edf")
     with open(d / "dataset_description.json", "w") as fh:
         json.dump({"Name": "eeg-prep synthetic fixture", "BIDSVersion": "1.8.0", "DatasetType": "raw",

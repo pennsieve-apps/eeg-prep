@@ -295,3 +295,26 @@ def test_loose_file_ids(tmp_path):
     from processor import sources as S
     assert S.describe(tmp_path / "chb01_03.edf", "edf").recording_id == "sub-chb01_task-eeg_run-03"
     assert S.describe(tmp_path / "patient02.edf", "edf").recording_id == "sub-patient02_task-eeg"
+
+
+def _check_cutoffs(eeg_dir: Path) -> list[str]:
+    """Every channels.tsv cutoff must equal what eeg-prep applied (eeg.json SoftwareFilters, else Nyquist)."""
+    bad = []
+    for ch in sorted(eeg_dir.rglob("*_desc-preproc_channels.tsv")):
+        js = json.loads(Path(str(ch).replace("_channels.tsv", "_eeg.json")).read_text())
+        sf = js["SoftwareFilters"] if isinstance(js["SoftwareFilters"], dict) else {}
+        hp = sf.get("Highpass", {}).get("CutoffFrequency", 0.0)
+        lp = sf.get("Lowpass", {}).get("CutoffFrequency", js["SamplingFrequency"] / 2.0)
+        for r in read_csv(ch, "\t"):
+            if abs(float(r["low_cutoff"]) - hp) > 1e-3 or abs(float(r["high_cutoff"]) - lp) > 1e-3 or \
+                    abs(float(r["sampling_frequency"]) - js["SamplingFrequency"]) > 1e-6:
+                bad.append(f"{ch.name} {r['name']}: {r['low_cutoff']}-{r['high_cutoff']} Hz vs applied {hp}-{lp}")
+    return bad
+
+
+def test_cutoffs_are_what_was_applied(default_run, fixture_dir):
+    """The fixture's EDF headers declare HP 5.305 Hz / LP 30 Hz on some channels (as Siena's do); channels.tsv
+    must report eeg-prep's own 0.5 Hz high-pass and Nyquist, never the declared values."""
+    assert _check_cutoffs(default_run / "eeg") == []
+    js = json.loads((default_run / "eeg" / "sub-01" / "ses-01" / "eeg" / f"{REF_ID}_desc-preproc_eeg.json").read_text())
+    assert js["SourceDeclaredFilters"]["highpass_hz"] == pytest.approx(5.305165)
