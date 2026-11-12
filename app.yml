@@ -23,8 +23,9 @@ application:
     - bids
 runtime:
   # One recording at a time, read in WINDOW_S windows; the cleaned signals go to a disk-backed
-  # array in TMPDIR, then to EDF+. Measured (amd64 emulation on an M-series Mac, 2 vCPU): see
-  # README "Runtime". Long-term recordings (24 h) need hours, hence the timeout.
+  # array in TMPDIR, then to EDF+. Measured (amd64 emulation on an M-series Mac, 2 vCPU, 3 GB):
+  # 13.5 h Siena recording 72 s / 1.77 GiB peak; 3 h 1024 Hz ds003555 201 s / 2.13 GiB.
+  # 4 GiB leaves room for 24 h at 512 Hz (not measured); see README "Runtime".
   cpu: 2048
   memory: 4096
   computeTypes:

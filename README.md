@@ -150,7 +150,26 @@ reference and from ICA, are still written (status `bad`), and are not interpolat
 
 ## Runtime
 
-RUNTIME_PLACEHOLDER
+Chosen: **2 vCPU (`cpu: 2048`), 4 GiB (`memory: 4096`), timeout 12 h**. Measured in Docker with
+`--cpus 2 --memory 3g`, **linux/amd64 emulated on an M-series Mac** (native amd64 is faster), defaults
+(`ARTIFACTS=iclabel`, pyprep with RANSAC), peak memory from the container's `memory.peak`:
+
+| Input | Recording | Wall time | Peak memory |
+|---|---|---|---|
+| Siena sub-00 run-00 + sub-13 run-00 | 44 min + 2.6 h, 19 ch, 256 Hz | 48 s (whole run) | 777 MiB |
+| Siena sub-01 run-00 (longest Siena recording) | 13.5 h, 19 ch, 256 Hz | 72 s | 1.77 GiB |
+| ds003555 sub-01 | 3 h, 23 ch, 1024 Hz | 201 s | 2.13 GiB |
+
+Time grows with the number of samples (about 5 s per hour of 19-channel 256 Hz EEG, ICA fit
+included); memory with the samples of one channel (the per-channel EDF range is computed on a whole
+channel) plus the disk-backed array of the cleaned recording in `TMPDIR`, whose pages the kernel
+counts while they are being written. A 24 h, 25-channel, 512 Hz recording was not measured; 4 GiB
+is the margin for it. Scratch disk: 4 bytes per sample of the output (24 h, 25 ch, 512 Hz = 4.4 GB),
+plus the EDF output (2 bytes per sample). The whole Siena demo (41 recordings, 141 h) took 463 s
+natively (arm64, 2 BLAS threads, no Docker), CHB-MIT chb01 (42 x 1 h) 118 s, ds003555 (3 x 3 h at
+1024 Hz) 181 s. The image is 853 MB (228 MB compressed). Lambda: possible for routine EEG within
+15 minutes and 10 GB of `/tmp` (the image is Lambda-safe: tested with a read-only root, uid 65534,
+HOME and TMPDIR under `/tmp`).
 
 ## Limitations
 
