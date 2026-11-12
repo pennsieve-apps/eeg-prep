@@ -1,0 +1,514 @@
+cff-version: "1.2.0"
+message: If you use this app, please cite it and the works it builds on, listed under references.
+type: software
+title: eeg-prep
+abstract: The first step of the Pennsieve scalp EEG workflows. Reads clinical scalp EEG (BIDS-EEG, EDF/EDF+,
+  BDF, BrainVision, EEGLAB, FIF, Nihon Kohden, Natus) with MNE-Python and MNE-BIDS, keeps the EEG channels
+  under canonical 10-20 names with template positions, finds bad channels with pyprep (PREP), filters,
+  re-references (average by default; bipolar-only recordings kept as pairs), removes eye, muscle and heart
+  artifacts with ICA and ICLabel (mne-icalabel) and optionally ASR (python-meegkit), marks bad segments,
+  reads seizure labels (BIDS/HED-SCORE events, EDF+ annotations, CHB-MIT summaries, labels.csv) and writes
+  one BIDS-EEG derivative (EDF+) with a QC table and figures.
+authors:
+- name: Pennsieve (University of Pennsylvania)
+contact:
+- given-names: Joost
+  family-names: Wagenaar
+  orcid: https://orcid.org/0009-0004-5925-5451
+  affiliation: University of Pennsylvania
+repository-code: https://github.com/pennsieve-apps/eeg-prep
+license: Apache-2.0
+keywords:
+- eeg
+- scalp-eeg
+- epilepsy
+- electrophysiology
+- bids
+- preprocessing
+- quality-control
+- artifact-removal
+- ica
+- iclabel
+references:
+- type: article
+  title: 'MEG and EEG data analysis with MNE-Python'
+  authors:
+  - family-names: 'Gramfort'
+    given-names: 'Alexandre'
+  - family-names: 'Luessi'
+    given-names: 'Martin'
+  - family-names: 'Larson'
+    given-names: 'Eric'
+  - family-names: 'Engemann'
+    given-names: 'Denis A.'
+  - family-names: 'Strohmeier'
+    given-names: 'Daniel'
+  - family-names: 'Brodbeck'
+    given-names: 'Christian'
+  - family-names: 'Goj'
+    given-names: 'Roman'
+  - family-names: 'Jas'
+    given-names: 'Mainak'
+  - family-names: 'Brooks'
+    given-names: 'Teon'
+  - family-names: 'Parkkonen'
+    given-names: 'Lauri'
+  - family-names: 'Hämäläinen'
+    given-names: 'Matti'
+  year: 2013
+  journal: 'Frontiers in Neuroscience'
+  volume: '7'
+  start: '267'
+  notes: 'Crossref lists only the first author; the author list is from PubMed (PMID 24431986).'
+  doi: 10.3389/fnins.2013.00267
+  identifiers:
+  - type: other
+    value: '24431986'
+    description: PMID
+- type: article
+  title: 'MNE-BIDS: Organizing electrophysiological data into the BIDS format and facilitating their analysis'
+  authors:
+  - family-names: 'Appelhoff'
+    given-names: 'Stefan'
+  - family-names: 'Sanderson'
+    given-names: 'Matthew'
+  - family-names: 'Brooks'
+    given-names: 'Teon'
+  - family-names: 'van Vliet'
+    given-names: 'Marijn'
+  - family-names: 'Quentin'
+    given-names: 'Romain'
+  - family-names: 'Holdgraf'
+    given-names: 'Chris'
+  - family-names: 'Chaumon'
+    given-names: 'Maximilien'
+  - family-names: 'Mikulan'
+    given-names: 'Ezequiel'
+  - family-names: 'Tavabi'
+    given-names: 'Kambiz'
+  - family-names: 'Höchenberger'
+    given-names: 'Richard'
+  - family-names: 'Welke'
+    given-names: 'Dominik'
+  - family-names: 'Brunner'
+    given-names: 'Clemens'
+  - family-names: 'Rockhill'
+    given-names: 'Alexander'
+  - family-names: 'Larson'
+    given-names: 'Eric'
+  - family-names: 'Gramfort'
+    given-names: 'Alexandre'
+  - family-names: 'Jas'
+    given-names: 'Mainak'
+  year: 2019
+  journal: 'Journal of Open Source Software'
+  volume: '4'
+  issue: '44'
+  start: '1896'
+  doi: 10.21105/joss.01896
+  identifiers:
+  - type: other
+    value: '35990374'
+    description: PMID
+- type: article
+  title: 'EEG-BIDS, an extension to the brain imaging data structure for electroencephalography'
+  authors:
+  - family-names: 'Pernet'
+    given-names: 'Cyril R.'
+  - family-names: 'Appelhoff'
+    given-names: 'Stefan'
+  - family-names: 'Gorgolewski'
+    given-names: 'Krzysztof J.'
+  - family-names: 'Flandin'
+    given-names: 'Guillaume'
+  - family-names: 'Phillips'
+    given-names: 'Christophe'
+  - family-names: 'Delorme'
+    given-names: 'Arnaud'
+  - family-names: 'Oostenveld'
+    given-names: 'Robert'
+  year: 2019
+  journal: 'Scientific Data'
+  volume: '6'
+  issue: '1'
+  start: '103'
+  doi: 10.1038/s41597-019-0104-8
+  identifiers:
+  - type: other
+    value: '31239435'
+    description: PMID
+- type: article
+  title: 'The PREP pipeline: standardized preprocessing for large-scale EEG analysis'
+  authors:
+  - family-names: 'Bigdely-Shamlo'
+    given-names: 'Nima'
+  - family-names: 'Mullen'
+    given-names: 'Tim'
+  - family-names: 'Kothe'
+    given-names: 'Christian'
+  - family-names: 'Su'
+    given-names: 'Kyung-Min'
+  - family-names: 'Robbins'
+    given-names: 'Kay A.'
+  year: 2015
+  journal: 'Frontiers in Neuroinformatics'
+  volume: '9'
+  start: '16'
+  doi: 10.3389/fninf.2015.00016
+  identifiers:
+  - type: other
+    value: '26150785'
+    description: PMID
+- type: software
+  title: 'PyPREP: A Python implementation of the preprocessing pipeline (PREP) for EEG data.'
+  authors:
+  - family-names: 'Appelhoff'
+    given-names: 'Stefan'
+  - family-names: 'Hurst'
+    given-names: 'Austin J.'
+  - family-names: 'Lawrence'
+    given-names: 'Aamna'
+  - family-names: 'Li'
+    given-names: 'Adam'
+  - family-names: 'Mantilla Ramos'
+    given-names: 'Yorguin José'
+  - family-names: 'O''Reilly'
+    given-names: 'Christian'
+  - family-names: 'Xiang'
+    given-names: 'Liang'
+  - family-names: 'Dancker'
+    given-names: 'Jonte'
+  - family-names: 'Scheltienne'
+    given-names: 'Mathieu'
+  - family-names: 'Bialas'
+    given-names: 'Ole'
+  - family-names: 'Alibou'
+    given-names: 'Nabil'
+  - family-names: 'Agarwal'
+    given-names: 'Ayush'
+  - family-names: 'Veillette'
+    given-names: 'John'
+  - family-names: 'Wieske'
+    given-names: 'Roy Eric'
+  year: 2026
+  publisher:
+    name: 'Zenodo'
+  doi: 10.5281/zenodo.6363575
+- type: article
+  title: 'MNE-ICALabel: Automatically annotating ICA components with ICLabel in Python'
+  authors:
+  - family-names: 'Li'
+    given-names: 'Adam'
+  - family-names: 'Feitelberg'
+    given-names: 'Jacob'
+  - family-names: 'Saini'
+    given-names: 'Anand Prakash'
+  - family-names: 'Höchenberger'
+    given-names: 'Richard'
+  - family-names: 'Scheltienne'
+    given-names: 'Mathieu'
+  year: 2022
+  journal: 'Journal of Open Source Software'
+  volume: '7'
+  issue: '76'
+  start: '4484'
+  doi: 10.21105/joss.04484
+- type: article
+  title: 'ICLabel: An automated electroencephalographic independent component classifier, dataset, and website'
+  authors:
+  - family-names: 'Pion-Tonachini'
+    given-names: 'Luca'
+  - family-names: 'Kreutz-Delgado'
+    given-names: 'Ken'
+  - family-names: 'Makeig'
+    given-names: 'Scott'
+  year: 2019
+  journal: 'NeuroImage'
+  volume: '198'
+  start: '181'
+  end: '197'
+  doi: 10.1016/j.neuroimage.2019.05.026
+  identifiers:
+  - type: other
+    value: '31103785'
+    description: PMID
+- type: article
+  title: 'Independent Component Analysis Using an Extended Infomax Algorithm for Mixed Subgaussian and Supergaussian Sources'
+  authors:
+  - family-names: 'Lee'
+    given-names: 'Te-Won'
+  - family-names: 'Girolami'
+    given-names: 'Mark'
+  - family-names: 'Sejnowski'
+    given-names: 'Terrence J.'
+  year: 1999
+  journal: 'Neural Computation'
+  volume: '11'
+  issue: '2'
+  start: '417'
+  end: '441'
+  doi: 10.1162/089976699300016719
+  identifiers:
+  - type: other
+    value: '9950738'
+    description: PMID
+- type: article
+  title: 'Faster Independent Component Analysis by Preconditioning With Hessian Approximations'
+  authors:
+  - family-names: 'Ablin'
+    given-names: 'Pierre'
+  - family-names: 'Cardoso'
+    given-names: 'Jean-Francois'
+  - family-names: 'Gramfort'
+    given-names: 'Alexandre'
+  year: 2018
+  journal: 'IEEE Transactions on Signal Processing'
+  volume: '66'
+  issue: '15'
+  start: '4040'
+  end: '4049'
+  doi: 10.1109/TSP.2018.2844203
+- type: article
+  title: 'Real-time neuroimaging and cognitive monitoring using wearable dry EEG'
+  authors:
+  - family-names: 'Mullen'
+    given-names: 'Tim R.'
+  - family-names: 'Kothe'
+    given-names: 'Christian A. E.'
+  - family-names: 'Chi'
+    given-names: 'Yu Mike'
+  - family-names: 'Ojeda'
+    given-names: 'Alejandro'
+  - family-names: 'Kerth'
+    given-names: 'Trevor'
+  - family-names: 'Makeig'
+    given-names: 'Scott'
+  - family-names: 'Jung'
+    given-names: 'Tzyy-Ping'
+  - family-names: 'Cauwenberghs'
+    given-names: 'Gert'
+  year: 2015
+  journal: 'IEEE Transactions on Biomedical Engineering'
+  volume: '62'
+  issue: '11'
+  start: '2553'
+  end: '2567'
+  doi: 10.1109/TBME.2015.2481482
+  identifiers:
+  - type: other
+    value: '26415149'
+    description: PMID
+- type: article
+  title: 'Evaluation of Artifact Subspace Reconstruction for Automatic Artifact Components Removal in Multi-Channel EEG Recordings'
+  authors:
+  - family-names: 'Chang'
+    given-names: 'Chi-Yuan'
+  - family-names: 'Hsu'
+    given-names: 'Sheng-Hsiou'
+  - family-names: 'Pion-Tonachini'
+    given-names: 'Luca'
+  - family-names: 'Jung'
+    given-names: 'Tzyy-Ping'
+  year: 2020
+  journal: 'IEEE Transactions on Biomedical Engineering'
+  volume: '67'
+  issue: '4'
+  start: '1114'
+  end: '1121'
+  doi: 10.1109/TBME.2019.2930186
+  identifiers:
+  - type: other
+    value: '31329105'
+    description: PMID
+- type: software
+  title: 'nbara/python-meegkit: v0.1.1'
+  authors:
+  - family-names: 'Barascud'
+    given-names: 'Nicolas'
+  - family-names: 'Alcocer'
+    given-names: 'Pedro'
+  - name: 'Paulroujansky'
+  - family-names: 'Tresols'
+    given-names: 'Juan Jesús Torre'
+  - family-names: 'Pals'
+    given-names: 'Matthijs'
+  - family-names: 'Quentin'
+    given-names: 'Romain'
+  - family-names: 'Royen'
+    given-names: 'Clément'
+  - name: ', Giuseppe'
+  - name: 'Ludovicdmt'
+  year: 2021
+  publisher:
+    name: 'Zenodo'
+  doi: 10.5281/zenodo.5643659
+- type: article
+  title: 'SzCORE : Seizure Community Open‐Source Research Evaluation framework for the validation of electroencephalography ‐based automated seizure detection algorithms'
+  authors:
+  - family-names: 'Dan'
+    given-names: 'Jonathan'
+  - family-names: 'Pale'
+    given-names: 'Una'
+  - family-names: 'Amirshahi'
+    given-names: 'Alireza'
+  - family-names: 'Cappelletti'
+    given-names: 'William'
+  - family-names: 'Ingolfsson'
+    given-names: 'Thorir Mar'
+  - family-names: 'Wang'
+    given-names: 'Xiaying'
+  - family-names: 'Cossettini'
+    given-names: 'Andrea'
+  - family-names: 'Bernini'
+    given-names: 'Adriano'
+  - family-names: 'Benini'
+    given-names: 'Luca'
+  - family-names: 'Beniczky'
+    given-names: 'Sándor'
+  - family-names: 'Atienza'
+    given-names: 'David'
+  - family-names: 'Ryvlin'
+    given-names: 'Philippe'
+  year: 2024
+  journal: 'Epilepsia'
+  volume: '66'
+  issue: 'S3'
+  start: '14'
+  end: '24'
+  doi: 10.1111/epi.18113
+  identifiers:
+  - type: other
+    value: '39292446'
+    description: PMID
+- type: data
+  title: 'Siena Scalp EEG Database'
+  authors:
+  - family-names: 'Detti'
+    given-names: 'Paolo'
+  year: 2020
+  publisher:
+    name: 'PhysioNet'
+  doi: 10.13026/5d4a-j060
+- type: article
+  title: 'EEG Synchronization Analysis for Seizure Prediction: A Study on Data of Noninvasive Recordings'
+  authors:
+  - family-names: 'Detti'
+    given-names: 'Paolo'
+  - family-names: 'Vatti'
+    given-names: 'Giampaolo'
+  - family-names: 'Zabalo Manrique de Lara'
+    given-names: 'Garazi'
+  year: 2020
+  journal: 'Processes'
+  volume: '8'
+  issue: '7'
+  start: '846'
+  doi: 10.3390/pr8070846
+- type: data
+  title: 'BIDS Siena Scalp EEG Database'
+  authors:
+  - family-names: 'Dan'
+    given-names: 'Jonathan'
+  - family-names: 'Detti'
+    given-names: 'Paolo'
+  year: 2024
+  publisher:
+    name: 'EPFL'
+  doi: 10.5281/zenodo.10640762
+- type: data
+  title: 'CHB-MIT Scalp EEG Database'
+  authors:
+  - family-names: 'Shoeb'
+    given-names: 'Ali'
+  year: 2010
+  publisher:
+    name: 'physionet.org'
+  doi: 10.13026/C2K01R
+- type: article
+  title: 'PhysioBank, PhysioToolkit, and PhysioNet'
+  authors:
+  - family-names: 'Goldberger'
+    given-names: 'Ary L.'
+  - family-names: 'Amaral'
+    given-names: 'Luis A. N.'
+  - family-names: 'Glass'
+    given-names: 'Leon'
+  - family-names: 'Hausdorff'
+    given-names: 'Jeffrey M.'
+  - family-names: 'Ivanov'
+    given-names: 'Plamen Ch.'
+  - family-names: 'Mark'
+    given-names: 'Roger G.'
+  - family-names: 'Mietus'
+    given-names: 'Joseph E.'
+  - family-names: 'Moody'
+    given-names: 'George B.'
+  - family-names: 'Peng'
+    given-names: 'Chung-Kang'
+  - family-names: 'Stanley'
+    given-names: 'H. Eugene'
+  year: 2000
+  journal: 'Circulation'
+  volume: '101'
+  issue: '23'
+  start: 'e215'
+  end: 'e220'
+  doi: 10.1161/01.CIR.101.23.e215
+  identifiers:
+  - type: other
+    value: '10851218'
+    description: PMID
+- type: data
+  title: 'Dataset of EEG recordings of pediatric patients with epilepsy based on the 10-20 system'
+  authors:
+  - name: 'Dorottya Cserpan'
+  - name: 'Ece Boran'
+  - name: 'Richard Rosch'
+  - name: 'San Pietro Lo Biundo'
+  - name: 'Georgia Ramantani'
+  - name: 'Johannes Sarnthein'
+  year: 2021
+  publisher:
+    name: 'OpenNeuro'
+  doi: 10.18112/openneuro.ds003555.v1.0.1
+- type: article
+  title: 'Scalp high-frequency oscillation rates are higher in younger children'
+  authors:
+  - family-names: 'Cserpan'
+    given-names: 'Dorottya'
+  - family-names: 'Boran'
+    given-names: 'Ece'
+  - family-names: 'Lo Biundo'
+    given-names: 'Santo Pietro'
+  - family-names: 'Rosch'
+    given-names: 'Richard'
+  - family-names: 'Sarnthein'
+    given-names: 'Johannes'
+  - family-names: 'Ramantani'
+    given-names: 'Georgia'
+  year: 2021
+  journal: 'Brain Communications'
+  volume: '3'
+  issue: '2'
+  start: 'fcab052'
+  doi: 10.1093/braincomms/fcab052
+  identifiers:
+  - type: other
+    value: '33870193'
+    description: PMID
+- type: thesis
+  title: 'Application of machine learning to epileptic seizure onset detection and treatment'
+  authors:
+  - family-names: 'Shoeb'
+    given-names: 'Ali Hossam'
+  year: 2009
+  institution:
+    name: 'Massachusetts Institute of Technology'
+  url: 'https://dspace.mit.edu/handle/1721.1/54669'
+- type: software
+  title: 'edfio'
+  authors:
+  - name: 'The Siesta Group'
+  repository-code: 'https://github.com/the-siesta-group/edfio'
+  url: 'https://github.com/the-siesta-group/edfio'
+  license: Apache-2.0
