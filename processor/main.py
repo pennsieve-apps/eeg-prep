@@ -149,6 +149,7 @@ def env_params() -> dict[str, str]:
         "FLAT_S": env("FLAT_S", "5"),
         "MUSCLE_Z": env("MUSCLE_Z", "7"),
         "RECORDING_KIND": env("RECORDING_KIND", "auto").lower(),
+        "PROTECT_ANNOTATED_SEIZURES": env("PROTECT_ANNOTATED_SEIZURES", "true").lower(),
         "WINDOW_S": env("WINDOW_S", "300"),
         "SEED": env("SEED", "42"),
         "THREADS": env("THREADS", "0"),
@@ -203,7 +204,7 @@ def parse_params(raw: dict[str, str]) -> P.Params:
         amplitude_channels=num("AMPLITUDE_CHANNELS", 0.01, 1.0), extreme_uv=num("EXTREME_UV", 0),
         flat_uv=num("FLAT_UV", 0), flat_s=num("FLAT_S", 0), muscle_z=num("MUSCLE_Z", 0),
         kind=choice("RECORDING_KIND", ("auto", "routine", "long-term", "sleep", "unknown")),
-        window_s=num("WINDOW_S", 30), seed=integer("SEED", 0), verify=flag("VERIFY_EDF"),
+        protect_seizures=flag("PROTECT_ANNOTATED_SEIZURES"), window_s=num("WINDOW_S", 30), seed=integer("SEED", 0), verify=flag("VERIFY_EDF"),
     )
 
 

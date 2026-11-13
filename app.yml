@@ -206,6 +206,15 @@ parameters:
       Or force routine, long-term, sleep or unknown (recordings.csv `kind`, used by eeg-sleep).
     defaultValue: auto
     validValues: [auto, routine, long-term, sleep, unknown]
+  - name: PROTECT_ANNOTATED_SEIZURES
+    type: boolean
+    label: Protect annotated seizures
+    description: >-
+      true: annotated seizures are never bad segments and are kept out of the bad-channel check and
+      the ICA/ASR calibration sample. false: the annotations are still read and written to
+      events.tsv and recordings.csv, but processing ignores them, as it would on an unannotated
+      recording (use this to evaluate seizure detection with bad segments excluded fairly).
+    defaultValue: true
   - name: WINDOW_S
     type: number
     label: Window (s)

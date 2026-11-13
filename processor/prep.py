@@ -67,6 +67,7 @@ class Params:
     flat_s: float = 5.0
     muscle_z: float = 7.0
     kind: str = "auto"
+    protect_seizures: bool = True
     window_s: float = 300.0
     seed: int = 42
     verify: bool = True
@@ -218,12 +219,16 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         deduped.append(lb)
     labs = deduped
     seizures = [(lb.onset, lb.onset + (lb.duration or 60.0)) for lb in labs if lb.trial_type == "seizure"]
+    # PROTECT_ANNOTATED_SEIZURES=false: the annotations are still read and written (events.tsv,
+    # recordings.csv), but processing is blind to them, as on an unannotated recording: bad-channel QC
+    # segments, ICA/ASR calibration chunks and bad segments are chosen as if there were no seizure.
+    sz_proc = seizures if params.protect_seizures else []
 
     # ---- line frequency and filters ----------------------------------------------------------------
     lf, lf_src = line_frequency(params.line_freq, sidecar, src)
     seg_len = min(params.qc_segment_s, duration)
     n_seg = 1 if duration < 3 * seg_len else 3
-    seg_starts = spread_starts(duration, seg_len, n_seg, seizures)
+    seg_starts = spread_starts(duration, seg_len, n_seg, sz_proc)
 
     def read(a: int, b: int) -> np.ndarray:
         return src.get(picks, a, b)
@@ -235,7 +240,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         x = read(a, a + int(seg_len * sfreq))
         # leave annotated seizures (+-10 s) out of the bad-channel check: ictal channels are not bad channels
         keep = np.ones(x.shape[1], dtype=bool)
-        for z0, z1 in seizures:
+        for z0, z1 in sz_proc:
             i0, i1 = int((z0 - 10.0) * sfreq) - a, int((z1 + 10.0) * sfreq) - a
             keep[max(0, i0):max(0, min(x.shape[1], i1))] = False
         if keep.sum() >= 60 * sfreq and not keep.all():
@@ -364,7 +369,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
     if want_ica or want_asr:
         n_chunks = int(max(1, math.ceil(min(params.ica_max_s, duration) / ICA_CHUNK_S)))
         chunk_len = min(ICA_CHUNK_S, duration)
-        starts = spread_starts(duration, chunk_len, n_chunks, seizures)
+        starts = spread_starts(duration, chunk_len, n_chunks, sz_proc)
         prog = Progress(rid, "reading the ICA/ASR calibration sample")
         calib, fit_chunks, peak = [], [], []
         for k, s in enumerate(starts):
@@ -481,7 +486,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         psd = psd_sum / max(psd_n, 1) / (osf * np.sum(hann ** 2)) * 2.0
         # annotated seizures are events of their own, never bad segments
         sz_keep = [(lb.onset, lb.onset + (lb.duration if lb.duration else UNKNOWN_SEIZURE_S))
-                   for lb in labs if lb.trial_type == "seizure"]
+                   for lb in labs if lb.trial_type == "seizure"] if params.protect_seizures else []
         n_raw_ivs = len(bad_ivs)
         bad_ivs = SG.without(bad_ivs, sz_keep)
         bad_by_reason = SG.seconds_by_reason(bad_ivs, n_out / osf)

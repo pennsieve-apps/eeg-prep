@@ -96,6 +96,7 @@ time and read in windows, so a 24 h recording does not need 24 h in memory.
 | `FLAT_UV`, `FLAT_S` | `0.1`, `5` | A good channel changing less than 0.1 µV per sample for 5 s marks a bad segment |
 | `MUSCLE_Z` | `7` | MNE muscle z-score threshold (70 Hz and up, z within each window); 0 = off |
 | `RECORDING_KIND` | `auto` | `recordings.csv` `kind`: auto (sleep from the task/sidecar, else routine <= 2 h / long-term), or forced |
+| `PROTECT_ANNOTATED_SEIZURES` | `true` | `true`: annotated seizures are never bad segments and are left out of the bad-channel check and the ICA/ASR calibration sample. `false`: annotations are still read and written (events.tsv, recordings.csv) but processing ignores them, as on an unannotated recording; use it to evaluate a seizure detector that excludes bad segments without the bias of protected annotations |
 | `WINDOW_S` | `300` | Processing window |
 | `SEED` | `42` | ICA and RANSAC seed |
 | `THREADS` | `0` | BLAS threads; 0 = from the cgroup CPU quota |

@@ -341,3 +341,29 @@ def test_bad_segments_rules():
     assert not any(a < 1050 / sf and b > 1000 / sf for a, b, _ in ivs)
     cut = SG.without([(0.0, 10.0, SG.MUSCLE)], [(2.0, 4.0)])
     assert cut == [(0.0, 2.0, SG.MUSCLE), (4.0, 10.0, SG.MUSCLE)]
+
+
+def test_blind_to_annotated_seizures(fixture_dir, tmp_path):
+    """PROTECT_ANNOTATED_SEIZURES=false: seizures still written, but bad segments computed as if unannotated."""
+    import shutil
+    src = tmp_path / "in"
+    shutil.copytree(fixture_dir / "eeg" / "bids", src / "eeg" / "bids")
+    # make the seizure an obvious bad-segment candidate: an electrode pop inside it
+    from edfio import read_edf
+    p = src / "eeg" / "bids" / "sub-01" / "ses-01" / "eeg" / f"{REF_ID}_eeg.edf"
+    edf = read_edf(p)
+    sig = edf.signals[0]
+    x = sig.data.copy()
+    i = int((F.SEIZURE[0] + 10) * F.SFREQ)
+    x[i:i + 15] += 2900.0
+    sig.update_data(x)
+    edf.write(p)
+    for protect, overlap in (("true", False), ("false", True)):
+        out = tmp_path / f"o-{protect}"
+        assert run(src, out, tmp_path, PROTECT_ANNOTATED_SEIZURES=protect, ARTIFACTS="none") == 0
+        ev = read_csv(out / "eeg" / "sub-01" / "ses-01" / "eeg" / f"{REF_ID}_desc-preproc_events.tsv", "\t")
+        assert [e for e in ev if e["trial_type"] == "seizure"], "seizure annotation must always be written"
+        hit = any(e["trial_type"] == "bad_segment" and float(e["onset"]) < F.SEIZURE[1]
+                  and float(e["onset"]) + float(e["duration"]) > F.SEIZURE[0] for e in ev)
+        assert hit == overlap, protect
+        assert read_csv(out / "eeg" / "recordings.csv")[0]["n_seizures"] == "1"
