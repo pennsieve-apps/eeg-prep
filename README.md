@@ -172,7 +172,7 @@ counts while they are being written. A 24 h, 25-channel, 512 Hz recording was no
 is the margin for it. Scratch disk: 4 bytes per sample of the output (24 h, 25 ch, 512 Hz = 4.4 GB),
 plus the EDF output (2 bytes per sample). The whole Siena demo (41 recordings, 141 h) took 463 s
 natively (arm64, 2 BLAS threads, no Docker), CHB-MIT chb01 (42 x 1 h) 118 s, ds003555 (3 x 3 h at
-1024 Hz) 181 s. The image is 853 MB (228 MB compressed). Lambda: possible for routine EEG within
+1024 Hz) 181 s. The image is 796 MB (200 MB compressed). Lambda: possible for routine EEG within
 15 minutes and 10 GB of `/tmp` (the image is Lambda-safe: tested with a read-only root, uid 65534,
 HOME and TMPDIR under `/tmp`).
 
@@ -277,5 +277,5 @@ Foundation (CRSK-3_190895, per its dataset_description.json).
 ```
 python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 make test PYTHON=.venv/bin/python     # synthetic fixture, no Docker
-make run                              # Docker over the fixture into data/output/
+make run PYTHON=.venv/bin/python      # Docker over the fixture into data/output/
 ```

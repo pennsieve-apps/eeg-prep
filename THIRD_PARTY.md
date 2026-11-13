@@ -19,6 +19,10 @@ components, installed from PyPI as binary wheels pinned in `requirements.txt`, o
 | edfio | 0.4.18 | The Siesta Group | Apache-2.0 | https://github.com/the-siesta-group/edfio |
 
 The ICLabel `.pt` (PyTorch) copy of the same weights is also in the wheel; it is not used (no PyTorch in the image).
+The wheel also contains `mne_icalabel/megnet/assets/megnet.onnx`, the MEGnet weights for MEG
+(Treacher et al. 2021); their upstream licence (https://github.com/DeepLearningForPrecisionHealthLab/MegNET_2020,
+University of Texas Southwestern Medical Center) permits academic and research use only, so the
+Dockerfile deletes the file: it is not in the image and eeg-prep never uses it.
 
 ## Libraries
 

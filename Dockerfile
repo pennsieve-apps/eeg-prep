@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir --no-deps --only-binary=:all: --root-user-action=
               /usr/local/lib/python3.12/site-packages/matplotlib/mpl-data/sample_data \
     # ICLabel weights ship inside the mne-icalabel wheel (BSD-3; upstream ICLabel BSD-2): check them
     && echo "b7dc72bc3fa5960b2843fc6d5ba60add842b0a240c6371598be09b595182c04b  /usr/local/lib/python3.12/site-packages/mne_icalabel/iclabel/network/assets/ICLabelNet.onnx" | sha256sum -c - \
+    # The wheel also ships MEGnet's MEG weights (megnet.onnx), not used here; upstream (UT Southwestern,
+    # MegNET_2020) licenses them for academic and research use only, so they are removed from the image
+    && rm -f /usr/local/lib/python3.12/site-packages/mne_icalabel/megnet/assets/megnet.onnx \
     # Matplotlib's font cache, built once; copied into $TMPDIR/mpl at start (HOME and /tmp are replaced on Lambda)
     && mkdir -p /opt/eeg-prep && MPLCONFIGDIR=/opt/eeg-prep/mpl python3 -c "import matplotlib.font_manager" \
     && chmod -R a+rX /opt/eeg-prep
