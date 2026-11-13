@@ -183,9 +183,10 @@ included); memory with the samples of one channel (the per-channel EDF range is 
 channel) plus the disk-backed array of the cleaned recording in `TMPDIR`, whose pages the kernel
 counts while they are being written. A 24 h, 25-channel, 512 Hz recording was not measured; 4 GiB
 is the margin for it. Scratch disk: 4 bytes per sample of the output (24 h, 25 ch, 512 Hz = 4.4 GB),
-plus the EDF output (2 bytes per sample). The whole Siena demo (41 recordings, 141 h) took 463 s
-natively (arm64, 2 BLAS threads, no Docker), CHB-MIT chb01 (42 x 1 h) 118 s, ds003555 (3 x 3 h at
-1024 Hz) 181 s. The image is 796 MB (200 MB compressed). Lambda: possible for routine EEG within
+plus the EDF output (2 bytes per sample). The whole Siena demo (41 recordings, 141 h) took 580 s
+natively (arm64, 2 BLAS threads, no Docker, with four other eeg-prep runs going in parallel; the
+`wall_seconds` of its provenance.json), CHB-MIT chb01 (42 x 1 h) 126 s, ds003555 (3 x 3 h at
+1024 Hz) 186 s. The image is 796 MB (200 MB compressed). Lambda: possible for routine EEG within
 15 minutes and 10 GB of `/tmp` (the image is Lambda-safe: tested with a read-only root, uid 65534,
 HOME and TMPDIR under `/tmp`).
 
