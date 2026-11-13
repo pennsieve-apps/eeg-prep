@@ -19,7 +19,7 @@ EDF files are written in the EDF+ format; test files are made with [edfio](https
 (The Siesta Group). **Pennsieve packages these methods into an app; it did not develop them.**
 The demo data are the Siena Scalp EEG Database of Paolo Detti and colleagues at the University of
 Siena ([Detti 2020](https://doi.org/10.13026/5d4a-j060)) in the BIDS conversion by Jonathan Dan
-and Paolo Detti (EPFL; [doi:10.5281/zenodo.10640762](https://doi.org/10.5281/zenodo.10640762)),
+and Paolo Detti, published on Zenodo by EPFL ([doi:10.5281/zenodo.10640762](https://doi.org/10.5281/zenodo.10640762)),
 the CHB-MIT Scalp EEG Database of Ali Shoeb and John Guttag (MIT, with Children's Hospital Boston;
 [doi:10.13026/C2K01R](https://doi.org/10.13026/C2K01R)), and OpenNeuro ds003555 of Dorottya
 Cserpan, Johannes Sarnthein and colleagues at the University Hospital Zurich
@@ -56,8 +56,14 @@ equals filtering the whole recording. Re-reference: average of the good channels
 blink, muscle, heart, line noise or channel noise with probability >= 0.8 removed; optional ASR.
 Bad segments mark *technically* unreadable stretches only: high amplitude on most channels at
 once (movement) or extreme amplitude on any channel (saturation, electrode pops), flat signal (MNE
-`annotate_amplitude`), clear muscle bursts (MNE `annotate_muscle_zscore`, z >= 7); spikes and
-seizure discharges are not bad segments, and annotated seizures are never covered by one. Output: EDF+ written incrementally (16-bit, per-channel range from the
+`annotate_amplitude`), clear muscle bursts (MNE `annotate_muscle_zscore`, z >= 7). Spikes and
+focal discharges on a few channels do not trigger the amplitude criteria, but seizures *can* be
+marked: their fast activity and myogenic artifact trip the muscle criterion and large ictal
+movement the amplitude criteria. Annotated seizures are therefore cut out of bad segments
+(`PROTECT_ANNOTATED_SEIZURES=true`); this protects only *annotated* seizures. Run blind
+(`PROTECT_ANNOTATED_SEIZURES=false`), bad segments touched 38 of the 47 Siena seizures (466 of 2,841
+ictal seconds, 16%) and all 7 chb01 seizures (129 of 442 s, 29%), none of them entirely. Output:
+EDF+ written incrementally (16-bit, per-channel range from the
 data), BIDS sidecars, `recordings.csv`, QC table and figures. Recordings are processed one at a
 time and read in windows, so a 24 h recording does not need 24 h in memory.
 
@@ -108,8 +114,15 @@ time and read in windows, so a 24 h recording does not need 24 h in memory.
 
 - `recordings.csv`: `recording_id, subject, session, task, run, path, sfreq, n_channels, n_good,
   duration_s, montage` (`average` | `linked-ears` | `as-recorded` | `bipolar-longitudinal`),
-  `reference` (`average`, `A1|A2`, the recorded reference, or `bipolar`), `kind`, `start_time`,
-  `n_seizures`, `source_format`, `age`, `sex`, then recording-level columns of `labels.csv`.
+  `reference` (`average`, `A1|A2`, the recorded reference, or `bipolar`), `kind`, `start_time`
+  (local wall clock, ISO 8601 without a UTC offset: EDF headers carry no time zone),
+  `labels_source` (`events.tsv` | `annotations` | `summary` | `labels.csv`, `|`-joined; empty when
+  nothing in the input speaks about seizures), `n_seizures` (empty, not 0, when `labels_source` is
+  empty), `source_format`, `age`, `sex`, then recording-level columns of `labels.csv`.
+- Recording ids of loose files: `chb01_03.edf` -> `sub-chb01_task-eeg_run-03`; CHB-MIT's
+  continuation files `chb02_16+.edf` -> `sub-chb02_task-eeg_acq-plus_run-16`; generic export names
+  (`EEG_01.edf`, `recording.edf`, ...) and names that collide across folders take the subject from
+  their folder (`P1/EEG_01.edf` -> `sub-P1_task-eeg_run-01`).
   Rewritten after every recording, so it always lists exactly the recordings written so far.
 - `participants.tsv`, `dataset_description.json` (derivative, `GeneratedBy` eeg-prep), `provenance.json`.
 - per recording, `sub-<label>/[ses-<label>/]eeg/<stem>_desc-preproc_*`:
@@ -179,9 +192,10 @@ HOME and TMPDIR under `/tmp`).
 ## Limitations
 
 - Automatic decisions to review, not clinical findings: a channel can be marked bad because it is
-  noisy throughout. Annotated seizures (up to 300 s after an onset without a known end) are cut out
-  of bad segments, but an *unannotated* seizure with myogenic fast activity can still be marked as
-  muscle; eeg-seizures keeps bad segments by default.
+  noisy throughout. Annotated seizures are cut out of bad segments (an onset without a known end is
+  taken to last 300 s; events.tsv keeps its duration `n/a`), but an *unannotated* seizure is not
+  protected: on the demo data, run blind, 16% (Siena) and 29% (chb01) of ictal time fell in bad
+  segments, mostly through the muscle criterion. eeg-seizures keeps bad segments by default.
 - ICLabel was trained on lab EEG (mostly 32+ channels, extended Infomax); on 19-channel clinical
   EEG its components are coarser. Components it labels "muscle" may carry temporal ictal or
   interictal activity mixed with muscle; set `ARTIFACTS=none` or raise `ICLABEL_THRESHOLD` when
@@ -244,7 +258,7 @@ lists in CITATION.cff.
 - Barascud N, et al. nbara/python-meegkit: v0.1.1. Zenodo 2021. doi:10.5281/zenodo.5643659 (ASR)
 - Dan J, Pale U, Amirshahi A, et al. SzCORE: Seizure Community Open-Source Research Evaluation
   framework for the validation of electroencephalography-based automated seizure detection
-  algorithms. *Epilepsia* 2024;66(S3):14-24. doi:10.1111/epi.18113, PMID: 39292446 (the HED-SCORE event format read here)
+  algorithms. *Epilepsia* 2025;66(S3):14-24, published online 2024. doi:10.1111/epi.18113, PMID: 39292446 (the HED-SCORE event format read here)
 
 Demo data:
 

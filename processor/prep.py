@@ -40,7 +40,8 @@ PSD_EPOCH_S = 4.0
 SIMPLE_FLAT_UV = 0.5
 LINE_NOISE_MAX = 0.5
 PROGRESS_EVERY_S = 60.0
-UNKNOWN_SEIZURE_S = 300.0     # kept free of bad segments after a seizure onset without a known end
+UNKNOWN_SEIZURE_S = 300.0     # a seizure onset without a known end is taken to last this long (kept free of
+                              # bad segments, out of QC segments and the ICA sample); events.tsv keeps n/a
 
 
 @dataclass
@@ -196,10 +197,18 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
             continue
         labs.append(L.Label(e.onset, e.duration, tt, "annotation", ev_path.name if ev_path else "events.tsv",
                             [canon(ch) for ch in e.channels], e.hed))
+    # where seizure labels came from (conventions.md `labels_source`); empty = never annotated
+    # events.tsv speaks about seizures when it is HED-SCORE (sz / bckg rows) or has seizure rows
+    label_sources: list[str] = ["events.tsv"] if (any(e.hed for e in events_in) or
+                                                  any(lb.trial_type == "seizure" for lb in labs)) else []
     if not events_in:
-        labs.extend(L.seizures_from_annotations(src.annotations))
+        ann = L.seizures_from_annotations(src.annotations)
+        labs.extend(ann)
+        if any(a.trial_type == "seizure" for a in ann):
+            label_sources.append("annotations")
     summ = summaries.get(c.path.parent, {}).get(c.path.name)
     if summ:
+        label_sources.append("summary")
         for a, b in summ["seizures"]:
             labs.append(L.Label(a, b - a, "seizure", "annotation", f"{c.subject}-summary.txt (CHB-MIT)"))
     ids = {rid, L.norm_recording(c.path.name)}
@@ -208,6 +217,8 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
     for ev in csv_events:
         ev.channels = [canon(ch) for ch in ev.channels]
     labs.extend(csv_events)
+    if any(ev.trial_type == "seizure" for ev in csv_events):
+        label_sources.append("labels.csv")
     deduped: list[L.Label] = []
     for lb in sorted(labs, key=lambda x: (x.onset, x.source != "annotation")):
         if any(d.trial_type == lb.trial_type and abs(d.onset - lb.onset) < 1.0 for d in deduped):
@@ -218,7 +229,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
             continue
         deduped.append(lb)
     labs = deduped
-    seizures = [(lb.onset, lb.onset + (lb.duration or 60.0)) for lb in labs if lb.trial_type == "seizure"]
+    seizures = [(lb.onset, lb.onset + (lb.duration or UNKNOWN_SEIZURE_S)) for lb in labs if lb.trial_type == "seizure"]
     # PROTECT_ANNOTATED_SEIZURES=false: the annotations are still read and written (events.tsv,
     # recordings.csv), but processing is blind to them, as on an unannotated recording: bad-channel QC
     # segments, ICA/ASR calibration chunks and bad segments are chosen as if there were no seizure.
@@ -709,7 +720,8 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
             kind = "sleep"
         else:
             kind = "routine" if dur_out <= 7200 else "long-term"
-    start_iso = start.isoformat() if start is not None else ""
+    # local wall clock without a UTC offset: EDF headers carry local time with no zone (conventions.md)
+    start_iso = start.replace(tzinfo=None).isoformat() if start is not None else ""
     if not start_iso:
         dts = [e.date_time for e in events_in if e.date_time]
         if dts:
@@ -719,7 +731,8 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         "recording_id": rid, "subject": c.subject, "session": c.session, "task": c.task, "run": c.run,
         "path": str(rel_dir / edf_name), "sfreq": fmt(osf), "n_channels": nch, "n_good": n_good,
         "duration_s": fmt(dur_out, 3), "montage": montage, "reference": reference, "kind": kind,
-        "start_time": start_iso, "n_seizures": sum(1 for lb in labs if lb.trial_type == "seizure"),
+        "start_time": start_iso, "labels_source": "|".join(label_sources),
+        "n_seizures": sum(1 for lb in labs if lb.trial_type == "seizure") if label_sources else "",
         "source_format": source_format(c), "age": age, "sex": sex,
     }
     rec_row.update({k: v for k, v in extra_cols.items() if k not in rec_row})
@@ -744,7 +757,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
                                      "modified_fraction": round(asr.changed / max(asr.total, 1), 4)},
         "bad_segments": len(bad_segs), "bad_segment_seconds": round(n_bad_s, 1),
         "bad_segment_seconds_by_criterion": bad_by_reason,
-        "n_seizures": rec_row["n_seizures"], "labels_csv_rows": len(label_rows),
+        "n_seizures": rec_row["n_seizures"], "labels_source": rec_row["labels_source"], "labels_csv_rows": len(label_rows),
         "clipped_samples": int(sum(r.clipped for r in ranges)),
         "quantisation_step_uv": {"median": float(np.median([r.step for r in ranges])),
                                  "max": float(max(r.step for r in ranges))},
@@ -758,7 +771,8 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         "montage": montage, "n_ica_components": ica.n_components if ica else 0,
         "n_ica_removed": len(ica.removed) if ica else 0,
         "ica_variance_removed_pct": round(100 * ica.explained_removed, 1) if ica else 0.0,
-        "bad_segment_pct": round(100 * n_bad_s / max(dur_out, 1e-9), 2), "n_seizures": rec_row["n_seizures"],
+        "bad_segment_pct": round(100 * n_bad_s / max(dur_out, 1e-9), 2),
+        "n_seizures": rec_row["n_seizures"] if label_sources else None,
     }
     plot = {"recording_id": rid, "sfreq": osf, "names": onames, "status": [status[n] for n in onames],
             "reasons": [reasons[n] for n in onames], "psd_f": psd_f, "psd": psd, "psd_epochs": psd_n,

@@ -89,7 +89,8 @@ APP_NAME = "eeg-prep"
 REPO_URL = "https://github.com/pennsieve-apps/eeg-prep"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RECORDING_COLUMNS = ["recording_id", "subject", "session", "task", "run", "path", "sfreq", "n_channels", "n_good",
-                     "duration_s", "montage", "reference", "kind", "start_time", "n_seizures", "source_format",
+                     "duration_s", "montage", "reference", "kind", "start_time", "labels_source", "n_seizures",
+                     "source_format",
                      "age", "sex"]
 QC_COLUMNS = ["recording_id", "item", "name", "original_name", "type", "status", "reason", "iclabel_label",
               "iclabel_probability", "robust_sd_uv", "line_noise_ratio"]
@@ -394,7 +395,7 @@ def main() -> int:
                 prow[k] = res.recording_row[k]
         v = d.get("verification") or {}
         log.info("%s: %d source ch -> %d EEG (%s, %d bad: %s; dropped %s) -> %s, ref %s; line %s Hz (%s); "
-                 "ICA %s; bad segments %d (%.1f s); seizures %d; EDF max error %.3g µV (%.2f steps); "
+                 "ICA %s; bad segments %d (%.1f s); seizures %s; EDF max error %.3g µV (%.2f steps); "
                  "%.1f s; peak RSS %.0f MB",
                  c.recording_id, d["source_channels"], d["eeg_channels"], d["layout"], len(d["bad_channels"]),
                  ", ".join(d["bad_channels"]) or "-", dict(d["dropped"]) or "none", d["montage"], d["reference"],

@@ -41,12 +41,12 @@ Dockerfile deletes the file: it is not in the image and eeg-prep never uses it.
 | protobuf 7.36.2 | | BSD-3-Clause |
 | flatbuffers 25.12.19 | | Apache-2.0 |
 | formulaic 1.2.2, interface_meta 2.0.1, narwhals 2.28.0, patsy 1.0.3, wrapt 2.5.2 | | MIT / BSD-2-Clause (patsy, wrapt) |
-| contourpy, cycler, kiwisolver, fonttools, pillow, pyparsing, python-dateutil, lazy-loader, decorator, packaging, platformdirs, tqdm, Jinja2, MarkupSafe, requests, urllib3, idna, charset-normalizer, certifi, tzdata, typing_extensions, cloudpickle, array-api-compat, array-api-extra | see requirements.txt | BSD / MIT / Apache-2.0 / MPL-2.0 (certifi) / HPND (pillow) / PSF (typing_extensions) |
+| contourpy, cycler, kiwisolver, fonttools, pillow, pyparsing, python-dateutil, lazy-loader, decorator, packaging, platformdirs, tqdm (MPL-2.0 AND MIT), Jinja2, MarkupSafe, requests, urllib3, idna, charset-normalizer, certifi, tzdata, typing_extensions, cloudpickle, array-api-compat, array-api-extra | see requirements.txt | BSD / MIT / Apache-2.0 / MPL-2.0 (certifi) / HPND (pillow) / PSF (typing_extensions) |
 
 ## Demo data (not bundled; used for testing and the README's numbers)
 
 | Dataset | Creators | Licence |
 |---|---|---|
-| Siena Scalp EEG Database (PhysioNet, doi:10.13026/5d4a-j060) and its BIDS conversion (Zenodo, doi:10.5281/zenodo.10640762) | Paolo Detti (University of Siena); BIDS conversion Jonathan Dan, Paolo Detti | PhysioNet: CC BY 4.0; BIDS conversion: ODC-By 1.0 (dataset_description.json) |
+| Siena Scalp EEG Database (PhysioNet, doi:10.13026/5d4a-j060) and its BIDS conversion (Zenodo, doi:10.5281/zenodo.10640762) | Paolo Detti (University of Siena); BIDS conversion Jonathan Dan, Paolo Detti | PhysioNet: CC BY 4.0; BIDS conversion: ODC-By 1.0 in its dataset_description.json, CC BY 4.0 on the Zenodo record (both allow redistribution with attribution) |
 | CHB-MIT Scalp EEG Database (PhysioNet, doi:10.13026/C2K01R) | Ali Shoeb, John Guttag (MIT), Children's Hospital Boston | ODC-By 1.0 |
 | OpenNeuro ds003555 v1.0.1 (doi:10.18112/openneuro.ds003555.v1.0.1) | Dorottya Cserpan, Ece Boran, Richard Rosch, San Pietro Lo Biundo, Georgia Ramantani, Johannes Sarnthein | CC0 |

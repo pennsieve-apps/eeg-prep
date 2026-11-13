@@ -70,11 +70,20 @@ def _alnum(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "", s) or "x"
 
 
-def describe(path: Path, fmt: str) -> Candidate:
+# File-name stems that name no patient (exporters' defaults): the subject comes from the folder.
+GENERIC_STEMS = {"eeg", "edf", "bdf", "rec", "recording", "record", "file", "data", "export", "exported",
+                 "signal", "signals", "raw", "session", "ses", "run", "seg", "segment", "part", "x", "trace",
+                 "study", "test", "untitled", "eegdata", "eegrecording"}
+
+
+def describe(path: Path, fmt: str, folder_subject: bool = False) -> Candidate:
     """Identity of one recording: BIDS entities when the file is in a BIDS layout, else from its name.
 
     Loose files: `chb01_03.edf` -> subject `chb01`, run `03`, id `sub-chb01_task-eeg_run-03`;
-    a name without a trailing number -> `sub-<name>_task-eeg`.
+    `chb02_16+.edf` (CHB-MIT's continuation of hour 16) -> `sub-chb02_task-eeg_acq-plus_run-16`;
+    a name without a trailing number -> `sub-<name>_task-eeg`. With `folder_subject` (a generic stem
+    such as `EEG_01`, or stems that collide across folders) the subject is the parent folder's name:
+    `P1/EEG_01.edf` -> `sub-P1_task-eeg_run-01`.
     """
     ents = B.parse_entities(path.name)
     parent = path.parent
@@ -93,13 +102,20 @@ def describe(path: Path, fmt: str) -> Candidate:
                          session=ents.get("ses", ""), task=ents.get("task", ""), run=ents.get("run", ""),
                          bids_root=root)
     stem = path.name.split(".")[0]
-    m = re.match(r"^(.*?)[\s_-]+0*(\d{1,4})$", stem)
+    acq = ""
+    if stem.endswith("+"):                      # CHB-MIT: chb02_16+.edf continues hour 16 after a gap
+        stem, acq = stem.rstrip("+"), "plus"
+    prefix, run = stem, ""
+    m = re.match(r"^(.*?)[\s_-]+0*(\d{1,4})$", stem)          # name_03, name-3, name 03
     if m and _alnum(m.group(1)) != "x":
-        sub, run = _alnum(m.group(1)), f"{int(m.group(2)):02d}"
-        rid = f"sub-{sub}_task-eeg_run-{run}"
+        prefix, run = m.group(1), f"{int(m.group(2)):02d}"
     else:
-        sub, run = _alnum(stem), ""
-        rid = f"sub-{sub}_task-eeg"
+        m = re.match(r"^([A-Za-z]+)0*(\d{1,4})$", stem)        # EEG01: a generic word and a number
+        if m and m.group(1).lower() in GENERIC_STEMS:
+            prefix, run = m.group(1), f"{int(m.group(2)):02d}"
+    generic = prefix.strip(" _-").lower() in GENERIC_STEMS
+    sub = _alnum(path.parent.name) if (folder_subject or generic) else _alnum(prefix)
+    rid = f"sub-{sub}_task-eeg" + (f"_acq-{acq}" if acq else "") + (f"_run-{run}" if run else "")
     return Candidate(path=path, fmt=fmt, bids=False, entities={}, recording_id=rid, subject=sub, session="",
                      task="eeg", run=run)
 
@@ -132,6 +148,16 @@ def find_recordings(input_dir: Path, pattern: str) -> tuple[list[Candidate], lis
             continue
         found.append(describe(p, fmt))
     notes: list[str] = []
+    # loose files whose ids collide across folders (P1/EEG_01.edf, P2/EEG_01.edf): subject from the folder
+    by_id: dict[str, list[int]] = {}
+    for k, c in enumerate(found):
+        if not c.bids:
+            by_id.setdefault(c.recording_id, []).append(k)
+    for rid, ks in by_id.items():
+        if len(ks) > 1 and len({found[k].path.parent for k in ks}) == len(ks):
+            for k in ks:
+                found[k] = describe(found[k].path, found[k].fmt, folder_subject=True)
+            notes.append(f"{len(ks)} files would all be {rid}; their subjects are taken from their folders")
     for c in found:
         c.origin = str(c.path.relative_to(input_dir))
     # a BIDS dataset's derivatives/ folder holds processed copies (ds003555 keeps HFO clips there)

@@ -85,7 +85,8 @@ def test_recordings_csv(default_run):
     assert r["montage"] == "average" and r["reference"] == "average"
     assert r["n_channels"] == "19" and r["n_good"] == "18"
     assert r["kind"] == "routine" and r["n_seizures"] == "1"
-    assert r["start_time"].startswith("2020-03-01T10:00:00")
+    assert r["start_time"] == "2020-03-01T10:00:00"            # local wall clock, no UTC offset
+    assert r["labels_source"] == "events.tsv" and rows[BIP_ID]["labels_source"] == "summary"
     assert (r["age"], r["sex"]) == ("34", "f")
     assert r["lateralisation"] == "left"            # labels.csv recording-level column
     assert r["source_format"] == "bids-edf" and float(r["duration_s"]) == F.DURATION
@@ -367,3 +368,33 @@ def test_blind_to_annotated_seizures(fixture_dir, tmp_path):
                   and float(e["onset"]) + float(e["duration"]) > F.SEIZURE[0] for e in ev)
         assert hit == overlap, protect
         assert read_csv(out / "eeg" / "recordings.csv")[0]["n_seizures"] == "1"
+
+
+def test_unlabelled_recording_has_empty_n_seizures(fixture_dir, tmp_path):
+    """No label source: labels_source and n_seizures empty (not 0), and no seizure rows."""
+    import shutil
+    src = tmp_path / "in" / "eeg"
+    src.mkdir(parents=True)
+    shutil.copy(fixture_dir / "eeg" / "chbx" / "chbx01_01.edf", src / "chbx01_01.edf")   # no summary file
+    assert run(tmp_path / "in", tmp_path / "o", tmp_path, ARTIFACTS="none") == 0
+    r = read_csv(tmp_path / "o" / "eeg" / "recordings.csv")[0]
+    assert r["labels_source"] == "" and r["n_seizures"] == ""
+    ev = read_csv(tmp_path / "o" / "eeg" / "sub-chbx01" / "eeg" / f"{BIP_ID}_desc-preproc_events.tsv", "\t")
+    assert not [e for e in ev if e["trial_type"] == "seizure"]
+    s = json.loads((tmp_path / "o" / "qc" / "eeg-prep" / "summary.json").read_text())
+    assert s["recordings"][BIP_ID]["n_seizures"] is None
+
+
+def test_loose_file_ids_plus_and_generic(tmp_path):
+    from processor import sources as S
+    assert S.describe(tmp_path / "chb02_16+.edf", "edf").recording_id == "sub-chb02_task-eeg_acq-plus_run-16"
+    assert S.describe(tmp_path / "P1" / "EEG_01.edf", "edf").recording_id == "sub-P1_task-eeg_run-01"
+    # stems that collide across patient folders: subject from the folder, nothing skipped
+    from edfio import Edf, EdfSignal
+    for pt in ("Alice", "Bob"):
+        d = tmp_path / "in" / pt
+        d.mkdir(parents=True)
+        Edf([EdfSignal(np.zeros(2560), 256.0, label=n) for n in ("C3", "C4")]).write(d / "Night_01.edf")
+    found, _, notes = S.find_recordings(tmp_path / "in", "*")
+    assert sorted(c.recording_id for c in found) == ["sub-Alice_task-eeg_run-01", "sub-Bob_task-eeg_run-01"]
+    assert notes

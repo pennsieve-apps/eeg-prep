@@ -14,7 +14,8 @@ The demo data of the scalp EEG workflows (`workflow-scalp-eeg/scripts/fetch-samp
 - **CHB-MIT Scalp EEG Database** (paediatric, bipolar-only, 256 Hz): one subject folder from
   https://physionet.org/content/chbmit/1.0.0/, e.g. `chb01/` (`chb01_01.edf` ... and
   `chb01-summary.txt`, which eeg-prep reads for the seizure times). Recording ids are made from the
-  file names: `chb01_03.edf` -> `sub-chb01_task-eeg_run-03`.
+  file names: `chb01_03.edf` -> `sub-chb01_task-eeg_run-03`, `chb02_16+.edf` ->
+  `sub-chb02_task-eeg_acq-plus_run-16`.
 - **OpenNeuro ds003555** (children with epilepsy, 3 h of sleep EEG, 10-20, 1024 Hz):
   https://openneuro.org/datasets/ds003555 (doi:10.18112/openneuro.ds003555.v1.0.1), e.g. `sub-01/`
   to `sub-03/` with the top-level `participants.tsv`. Set `RECORDING_KIND=sleep`. The `derivatives/`
