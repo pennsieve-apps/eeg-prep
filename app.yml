@@ -156,9 +156,26 @@ parameters:
     type: number
     label: Bad-segment amplitude (µV)
     description: >-
-      A sample above this absolute value on any good channel (after filtering, re-referencing and
-      artifact removal) marks a bad segment (+-0.5 s); 0 = off.
+      A bad segment (+-0.5 s) where at least AMPLITUDE_CHANNELS of the good channels exceed this
+      absolute value at the same time (movement, a global artifact; after filtering, re-referencing
+      and artifact removal). Spikes and focal seizure discharges on a few channels are not bad
+      segments. 0 = off.
     defaultValue: 500
+    min: 0
+  - name: AMPLITUDE_CHANNELS
+    type: number
+    label: Fraction of channels for the amplitude criterion
+    description: Fraction of the good channels that must exceed AMPLITUDE_UV at once.
+    defaultValue: 0.5
+    min: 0.01
+    max: 1
+  - name: EXTREME_UV
+    type: number
+    label: Extreme amplitude (µV)
+    description: >-
+      Any good channel above this marks a bad segment (+-0.5 s): amplifier saturation, electrode
+      pops; far above any cerebral scalp signal. 0 = off.
+    defaultValue: 2000
     min: 0
   - name: FLAT_UV
     type: number
@@ -176,9 +193,10 @@ parameters:
     type: number
     label: Muscle z-score
     description: >-
-      Threshold of MNE's annotate_muscle_zscore (70 Hz and above, per window); 0 = off. Not used when
-      the data are low-passed below 80 Hz or sampled below ~200 Hz.
-    defaultValue: 5
+      Threshold of MNE's annotate_muscle_zscore (70 Hz and above, z-scored within each WINDOW_S
+      window); 0 = off. 7 flags clear muscle bursts (lower values flag the top of every window even
+      without muscle). Not used when the data are low-passed below 80 Hz or sampled below ~200 Hz.
+    defaultValue: 7
     min: 0
   - name: RECORDING_KIND
     type: string

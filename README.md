@@ -54,8 +54,10 @@ high-pass 0.5 Hz, optional low-pass and resampling, applied to padded windows so
 equals filtering the whole recording. Re-reference: average of the good channels. Artifacts: ICA
 (extended Infomax, or Picard) fitted on a 300 s sample, components labelled by ICLabel as eye
 blink, muscle, heart, line noise or channel noise with probability >= 0.8 removed; optional ASR.
-Bad segments: absolute amplitude, flat signal (MNE `annotate_amplitude`), muscle (MNE
-`annotate_muscle_zscore`). Output: EDF+ written incrementally (16-bit, per-channel range from the
+Bad segments mark *technically* unreadable stretches only: high amplitude on most channels at
+once (movement) or extreme amplitude on any channel (saturation, electrode pops), flat signal (MNE
+`annotate_amplitude`), clear muscle bursts (MNE `annotate_muscle_zscore`, z >= 7); spikes and
+seizure discharges are not bad segments, and annotated seizures are never covered by one. Output: EDF+ written incrementally (16-bit, per-channel range from the
 data), BIDS sidecars, `recordings.csv`, QC table and figures. Recordings are processed one at a
 time and read in windows, so a 24 h recording does not need 24 h in memory.
 
@@ -88,9 +90,11 @@ time and read in windows, so a 24 h recording does not need 24 h in memory.
 | `RANSAC` | `true` | Use pyprep's RANSAC criterion |
 | `QC_SEGMENT_S` | `300` | Length of each bad-channel QC segment (up to 3) |
 | `BAD_Z` | `5` | Robust z threshold of the simple criteria |
-| `AMPLITUDE_UV` | `500` | |x| above this on any good channel marks a bad segment (+-0.5 s); 0 = off |
+| `AMPLITUDE_UV` | `500` | Bad segment (+-0.5 s) where at least `AMPLITUDE_CHANNELS` of the good channels exceed this at once; 0 = off |
+| `AMPLITUDE_CHANNELS` | `0.5` | Fraction of good channels for the amplitude criterion |
+| `EXTREME_UV` | `2000` | Any good channel above this marks a bad segment (saturation, electrode pop); 0 = off |
 | `FLAT_UV`, `FLAT_S` | `0.1`, `5` | A good channel changing less than 0.1 µV per sample for 5 s marks a bad segment |
-| `MUSCLE_Z` | `5` | MNE muscle z-score threshold (70 Hz and up); 0 = off |
+| `MUSCLE_Z` | `7` | MNE muscle z-score threshold (70 Hz and up, z within each window); 0 = off |
 | `RECORDING_KIND` | `auto` | `recordings.csv` `kind`: auto (sleep from the task/sidecar, else routine <= 2 h / long-term), or forced |
 | `WINDOW_S` | `300` | Processing window |
 | `SEED` | `42` | ICA and RANSAC seed |
@@ -174,8 +178,9 @@ HOME and TMPDIR under `/tmp`).
 ## Limitations
 
 - Automatic decisions to review, not clinical findings: a channel can be marked bad because it is
-  noisy throughout, and a bad segment can cover a seizure (high-amplitude ictal activity exceeds
-  `AMPLITUDE_UV`). eeg-seizures and the reports do not drop seizures because of bad segments.
+  noisy throughout. Annotated seizures (up to 300 s after an onset without a known end) are cut out
+  of bad segments, but an *unannotated* seizure with myogenic fast activity can still be marked as
+  muscle; eeg-seizures keeps bad segments by default.
 - ICLabel was trained on lab EEG (mostly 32+ channels, extended Infomax); on 19-channel clinical
   EEG its components are coarser. Components it labels "muscle" may carry temporal ictal or
   interictal activity mixed with muscle; set `ARTIFACTS=none` or raise `ICLABEL_THRESHOLD` when

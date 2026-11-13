@@ -138,6 +138,13 @@ def test_events(default_run):
                for e in bad), bad
     assert all(e["source"] == "eeg-prep" for e in bad)
     assert sum(float(e["duration"]) for e in bad) < 10           # the rest of the recording is not thrown away
+    # the electrode pop on one channel is a bad segment (extreme amplitude)
+    assert any(float(e["onset"]) <= F.POP[0] and float(e["onset"]) + float(e["duration"]) >= F.POP[1] for e in bad)
+    # spikes (> 100 µV on a few channels) and the seizure (140 µV, left temporal) are not bad segments
+    for st in F.SPIKE_TIMES:
+        assert not any(float(e["onset"]) <= st <= float(e["onset"]) + float(e["duration"]) for e in bad), st
+    assert not any(float(e["onset"]) < F.SEIZURE[1] and float(e["onset"]) + float(e["duration"]) > F.SEIZURE[0]
+                   for e in bad)
     evb = read_csv(default_run / "eeg" / "sub-chbx01" / "eeg" / f"{BIP_ID}_desc-preproc_events.tsv", "\t")
     szb = [e for e in evb if e["trial_type"] == "seizure"]
     assert [(float(e["onset"]), float(e["duration"])) for e in szb] == [
@@ -318,3 +325,19 @@ def test_cutoffs_are_what_was_applied(default_run, fixture_dir):
     assert _check_cutoffs(default_run / "eeg") == []
     js = json.loads((default_run / "eeg" / "sub-01" / "ses-01" / "eeg" / f"{REF_ID}_desc-preproc_eeg.json").read_text())
     assert js["SourceDeclaredFilters"]["highpass_hz"] == pytest.approx(5.305165)
+
+
+def test_bad_segments_rules():
+    """Amplitude needs most channels at once (or an extreme value); seizures are cut out of bad segments."""
+    from processor import segments as SG
+    sf = 256.0
+    x = np.zeros((10, int(20 * sf)))
+    x[:2, 1000:1050] = 800.0          # two channels only: cerebral-looking, not bad
+    x[:8, 3000:3050] = 800.0          # most channels: movement, bad
+    x[5, 4000:4005] = 2500.0          # one channel, extreme: electrode pop, bad
+    ivs = SG.find(x, [f"c{k}" for k in range(10)], sf, 0.0, 500.0, 0.0, 0.0, 0.0, 0.5, 2000.0)
+    reasons = sorted(r for _, _, r in ivs)
+    assert reasons == [SG.AMPLITUDE, SG.EXTREME]
+    assert not any(a < 1050 / sf and b > 1000 / sf for a, b, _ in ivs)
+    cut = SG.without([(0.0, 10.0, SG.MUSCLE)], [(2.0, 4.0)])
+    assert cut == [(0.0, 2.0, SG.MUSCLE), (4.0, 10.0, SG.MUSCLE)]

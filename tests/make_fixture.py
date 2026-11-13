@@ -14,8 +14,8 @@ correlated 1/f background with a common reference signal, a posterior 10 Hz alph
 eye blinks every ~6 s (frontal), left temporal spikes at SPIKE_TIMES (peak on F7/T7), a
 left temporal 5 Hz seizure-like discharge SEIZURE (annotated in events.tsv as HED-SCORE
 `sz_foc_ia` on T3,T5), a sleep-like segment SLEEP with 1 Hz slow waves and 13 Hz spindles,
-50 Hz line noise, a noisy channel (C4, NOISY), and a movement artifact ARTIFACT (2000 µV on
-the frontal channels).
+50 Hz line noise, a noisy channel (C4, NOISY), a movement artifact ARTIFACT (front and back
+swinging by up to 2500 µV) and an electrode pop POP on O2 (4000 µV for 60 ms).
 
 Bipolar recording (chbx01_01, 256 Hz, 120 s): the 23 CHB-MIT channels (FP1-F7, ..., T8-P8
 twice, P7-T7 the inverse of T7-P7) derived from the same kind of signals, a '-' dummy and an
@@ -44,6 +44,8 @@ SEIZURE = (100.0, 130.0)
 SLEEP = (140.0, 175.0)
 ARTIFACT = (62.0, 62.6)
 NOISY = "C4"
+POP = (88.0, 88.06)
+POP_CHANNEL = "O2"
 BIPOLAR_DURATION = 120.0
 BIPOLAR_SEIZURE = (60.0, 80.0)
 SEED = 7
@@ -169,9 +171,12 @@ def write_referential(root: Path) -> None:
         x = sig[e] - common + line
         if e == NOISY:
             x = x + 70.0 * rng.standard_normal(n)
-        if e in ("Fp1", "Fp2", "F7", "F8", "F3", "F4", "Fz"):
-            a, b = int(ARTIFACT[0] * SFREQ), int(ARTIFACT[1] * SFREQ)
-            x[a:b] += 2000.0 * np.hanning(b - a)
+        # movement artifact: front and back swing in opposite directions (survives the average reference)
+        a, b = int(ARTIFACT[0] * SFREQ), int(ARTIFACT[1] * SFREQ)
+        x[a:b] += 2500.0 * POS2D[e][1] * np.hanning(b - a)
+        if e == POP_CHANNEL:   # electrode pop: one channel jumps far beyond any cerebral signal
+            a, b = int(POP[0] * SFREQ), int(POP[1] * SFREQ)
+            x[a:b] += 4000.0
         labels.append(f"EEG {OLD.get(e, e)}-REF")
         data.append(x)
     ekg = np.zeros(n)

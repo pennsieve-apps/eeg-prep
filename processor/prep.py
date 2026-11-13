@@ -40,6 +40,7 @@ PSD_EPOCH_S = 4.0
 SIMPLE_FLAT_UV = 0.5
 LINE_NOISE_MAX = 0.5
 PROGRESS_EVERY_S = 60.0
+UNKNOWN_SEIZURE_S = 300.0     # kept free of bad segments after a seizure onset without a known end
 
 
 @dataclass
@@ -60,9 +61,11 @@ class Params:
     qc_segment_s: float = 300.0
     bad_z: float = 5.0
     amplitude_uv: float = 500.0
+    amplitude_channels: float = 0.5
+    extreme_uv: float = 2000.0
     flat_uv: float = 0.1
     flat_s: float = 5.0
-    muscle_z: float = 5.0
+    muscle_z: float = 7.0
     kind: str = "auto"
     window_s: float = 300.0
     seed: int = 42
@@ -460,7 +463,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
             mm[:, o0:o0 + length] = x
             t_win = o0 / osf
             ivs = SG.find(x[good], good_names, osf, t_win, params.amplitude_uv, params.flat_uv, params.flat_s,
-                          muscle_z)
+                          muscle_z, params.amplitude_channels, params.extreme_uv)
             bad_ivs.extend(ivs)
             # Welch PSD over 4 s epochs that do not touch a bad interval of this window
             for e0 in range(0, length - nper + 1, nper):
@@ -476,6 +479,12 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         t_main = time.monotonic() - t_main
         psd_f = np.fft.rfftfreq(nper, 1.0 / osf)
         psd = psd_sum / max(psd_n, 1) / (osf * np.sum(hann ** 2)) * 2.0
+        # annotated seizures are events of their own, never bad segments
+        sz_keep = [(lb.onset, lb.onset + (lb.duration if lb.duration else UNKNOWN_SEIZURE_S))
+                   for lb in labs if lb.trial_type == "seizure"]
+        n_raw_ivs = len(bad_ivs)
+        bad_ivs = SG.without(bad_ivs, sz_keep)
+        bad_by_reason = SG.seconds_by_reason(bad_ivs, n_out / osf)
         bad_segs = SG.merge(bad_ivs, n_out / osf)
 
         # ---- ranges, EDF+ ---------------------------------------------------------------------------
@@ -668,7 +677,8 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
     qc_rows.append({"recording_id": rid, "item": "bad_segments", "name": "total", "original_name": "",
                     "type": "segments", "status": "", "reason": f"{len(bad_segs)} segment(s), {n_bad_s:.1f} s "
                     f"({100 * n_bad_s / max(dur_out, 1e-9):.2f}%)" + (
-                        "; " + "; ".join(sorted({p for _, _, w in bad_segs for p in w.split("; ")})) if bad_segs else "")})
+                        "; by criterion: " + ", ".join(f"{k} {v:g} s" for k, v in bad_by_reason.items())
+                        if bad_by_reason else "")})
     if asr:
         qc_rows.append({"recording_id": rid, "item": "asr", "name": "ASR", "original_name": "", "type": "ASR",
                         "status": "applied", "reason": f"cutoff {params.asr_cutoff:g}; "
@@ -728,6 +738,7 @@ def _process(c: S.Candidate, src: S.Source, notes: list[str], params: Params, la
         "asr": None if not asr else {"cutoff": params.asr_cutoff,
                                      "modified_fraction": round(asr.changed / max(asr.total, 1), 4)},
         "bad_segments": len(bad_segs), "bad_segment_seconds": round(n_bad_s, 1),
+        "bad_segment_seconds_by_criterion": bad_by_reason,
         "n_seizures": rec_row["n_seizures"], "labels_csv_rows": len(label_rows),
         "clipped_samples": int(sum(r.clipped for r in ranges)),
         "quantisation_step_uv": {"median": float(np.median([r.step for r in ranges])),
